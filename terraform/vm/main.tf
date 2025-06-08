@@ -35,18 +35,32 @@ resource "azurerm_linux_virtual_machine" "vm" {
 
   provisioner "remote-exec" {
     inline = [
-      "git clone https://github.com/sainadh99/nodejs.git",
-      "cd nodejs",
-      "echo 'Running docker-compose...' && sudo docker compose up -d || echo 'Docker failed!'"
-    ]
+      "echo STEP 1: Updating...",
+    "sudo apt-get update -y",
 
-    connection {
-      type        = "ssh"
-      user        = var.username
-      password    = var.password
-      host        = var.public_ip_address
-      port        = 22
-      timeout     = "5m"
+    "echo STEP 2: Installing Docker and Git...",
+    "sudo apt-get install -y docker.io docker-compose git",
+
+    "echo STEP 3: Enabling and starting Docker...",
+    "sudo systemctl enable docker",
+    "sudo systemctl start docker",
+
+    "echo STEP 4: Cloning GitHub repo...",
+    "rm -rf nodejs",
+    "git clone https://github.com/sainadh99/nodejs.git",
+
+    "echo STEP 5: Running docker-compose...",
+    "cd nodejs && sudo docker-compose up -d"
+  ]
+
+  connection {
+    type        = "ssh"
+    user        = var.username
+    password    = var.password
+    host        = var.public_ip_address
+    port        = 22
+    timeout     = "5m"
+    script_path = "/tmp/terraform.sh"
     }
   }
 
