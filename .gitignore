@@ -1,7 +1,39 @@
+# Python
 venv/
+__pycache__/
+
+# Terraform
 .terraform/
 terraform.tfstate
-terraform.tfstate.backup
-__pycache__/
-*.log
+terraform.tfstate.*
+*.tfvars
+
+# Node
+node_modules/
+*.lock
+
+# Secrets
+.env
 *.env
+.env.*
+
+# Logs and reports
+*.log
+trivy-*.txt
+
+# Monitoring
+ELK/
+prometheus/
+monitoring.yml
+node_exporter-*/
+*.tar.gz
+
+# DB folders
+db/
+pgdata/
+
+# System/editor
+.DS_Store
+.vscode/
+.idea/
+

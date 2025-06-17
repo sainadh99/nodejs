@@ -1,0 +1,21 @@
+# Ignore dependencies and build artifacts
+node_modules
+build
+
+# Docker-related
+.dockerignore
+Dockerfile
+
+# Logs
+*.log
+
+# Git & metadata
+.git
+.DS_Store
+.vscode
+
+# 🔐 Secrets
+
+*.key
+*.pem
+
