@@ -1,47 +1,59 @@
-
 // backend/getVaultSecrets.js
 require('dotenv').config();
+const fetch = require('node-fetch');
 
-const fetchSecretFromVault = async () => {
-  const fetch = (await import('node-fetch')).default;
+/* ------------------------------------------------------------------ */
+/*  Environment variables                                             */
+/* ------------------------------------------------------------------ */
+const { VAULT_ADDR, ROLE_ID, SECRET_ID } = process.env;
+if (!VAULT_ADDR || !ROLE_ID || !SECRET_ID) {
+  throw new Error('Missing VAULT_ADDR, ROLE_ID, or SECRET_ID in environment');
+}
 
-  const VAULT_ADDR = process.env.VAULT_ADDR;
-  const ROLE_ID    = process.env.ROLE_ID;
-  const SECRET_ID  = process.env.SECRET_ID;
-
-  if (!VAULT_ADDR || !ROLE_ID || !SECRET_ID) {
-    throw new Error("Missing VAULT_ADDR, ROLE_ID, or SECRET_ID in .env");
-  }
-
-  // 1) Login via AppRole
-  const loginRes = await fetch(`${VAULT_ADDR}/v1/auth/approle/login`, {
+/* ------------------------------------------------------------------ */
+/* 1️⃣  Authenticate with Vault (AppRole → client token)               */
+/* ------------------------------------------------------------------ */
+async function getVaultToken() {
+  const res = await fetch(`${VAULT_ADDR}/v1/auth/approle/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ role_id: ROLE_ID, secret_id: SECRET_ID })
+    body: JSON.stringify({ role_id: ROLE_ID, secret_id: SECRET_ID }),
   });
-  if (!loginRes.ok) {
-    throw new Error(`Login failed: ${await loginRes.text()}`);
-  }
-  const loginJson = await loginRes.json();
-  const token     = loginJson.auth.client_token;
+  if (!res.ok) throw new Error(`Login failed: ${await res.text()}`);
+  const json = await res.json();
+  return json.auth.client_token;          // ← token for subsequent requests
+}
 
-  // 2) Read KV–v1 secret (no /data/ in path)
-  const secretRes = await fetch(`${VAULT_ADDR}/v1/secret/myapp/config`, {
-    headers: { 'X-Vault-Token': token }
+/* ------------------------------------------------------------------ */
+/* 2️⃣  Read secret from KV-v2 path: secret/data/myapp/db              */
+/* ------------------------------------------------------------------ */
+async function getSecret(token) {
+  const res = await fetch(`${VAULT_ADDR}/v1/secret/data/myapp/db`, {
+    headers: { 'X-Vault-Token': token },
   });
-  if (!secretRes.ok) {
-    throw new Error(`Secret fetch failed: ${await secretRes.text()}`);
-  }
-  const secretJson  = await secretRes.json();
-  const secretData  = secretJson.data;
+  if (!res.ok) throw new Error(`Secret fetch failed: ${await res.text()}`);
+  const json = await res.json();
+  return json.data.data;                  // KV-v2 → data.data holds the fields
+}
 
-  // 3) Return just the fields you need
-  return {
-    DB_USER:     secretData.DB_USER,
-    DB_PASSWORD: secretData.DB_PASSWORD,
-    DB_NAME:     secretData.DB_NAME
-  };
+/* ------------------------------------------------------------------ */
+/* 3️⃣  Helper exported for server.js                                  */
+/* ------------------------------------------------------------------ */
+module.exports = async function fetchSecretFromVault() {
+  const token  = await getVaultToken();
+  const secret = await getSecret(token);  // { DB_USER, DB_PASSWORD, DB_NAME }
+  return secret;
 };
 
-module.exports = fetchSecretFromVault;
+/* ------------------------------------------------------------------ */
+/*  Optional: standalone test (uncomment to run once)                  */
+/* ------------------------------------------------------------------ */
+// (async () => {
+//   try {
+//     const secret = await module.exports();
+//     console.log('✅ Retrieved secret:', secret);
+//   } catch (err) {
+//     console.error('❌ Error:', err.message);
+//   }
+// })();
 

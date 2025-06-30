@@ -9,8 +9,9 @@ services:
     environment:
       # Vault AppRole settings
       VAULT_ADDR: "http://34.134.95.91:8200"
-      ROLE_ID: "119563f0-a3af-504d-3658-e0c221e7f5ff"
-      SECRET_ID: "c1a6b03d-fbc2-e64d-8fd5-fcef0b1060e2"
+      ROLE_ID: "2734e58a-34ec-b9e3-ce22-9edfba033e18"
+      SECRET_ID: "743188e8-305e-8763-2726-4ce4bca9403d"
+
     networks:
       - app-network
     depends_on:
